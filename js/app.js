@@ -935,6 +935,14 @@
     };
   });
 
+  window.__MAP_APP__ = {
+    map,
+    renderFrame,
+    openBattle,
+    closeBattle,
+    getCurrentYear: () => TIMELINE_FRAMES[currentIndex]?.year
+  };
+
   initEventFilters();
   buildStateCard("xijin");
   renderFrame(0);
