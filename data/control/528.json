@@ -1,0 +1,39 @@
+{
+  "@meta": {
+    "year": 528,
+    "basedOn": 520
+  },
+  "@assign": {
+    "@zone:hebei_north": "beiwei",
+    "@zone:hebei_south": "beiwei",
+    "@zone:shandong": "beiwei",
+    "@zone:huaibei": "beiwei",
+    "@zone:shanxi": "beiwei",
+    "@zone:henan": "beiwei",
+    "@zone:huainan": "liang",
+    "@zone:hexi_west": "beiwei",
+    "@zone:hexi_east": "beiwei",
+    "@zone:longyou": "beiwei",
+    "@zone:guanzhong": "beiwei",
+    "@zone:hetao": "beiwei",
+    "@zone:qinghai": "tuyuhun",
+    "@zone:xiyu": "gaoche",
+    "@zone:liaodong": "beiwei",
+    "@zone:koguryo": "goguryeo",
+    "@zone:steppe_east": "rouran",
+    "@zone:steppe_west": "gaoche",
+    "@zone:hanzhong": "beiwei",
+    "@zone:bashu": "liang",
+    "@zone:nanzhong": "liang",
+    "@zone:jingbei": "liang",
+    "@zone:jiangling": "liang",
+    "@zone:jianghan": "liang",
+    "@zone:jiangdong": "liang",
+    "@zone:liangzhe": "liang",
+    "@zone:jiangxi": "liang",
+    "@zone:hunan": "liang",
+    "@zone:lingnan_east": "liang",
+    "@zone:lingnan_west": "liang",
+    "@zone:jiaozhou": "liang"
+  }
+}

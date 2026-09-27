@@ -331,12 +331,8 @@ button { cursor: pointer; padding: 4px 8px; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.county-boundary path {
-  stroke-dasharray: 4 4;
-}
-.county-toggle-label {
-  background: #fffaf0;
-  color: var(--ink);
+.leaflet-overlay-pane path.leaflet-interactive {
+  transition: fill-opacity .38s ease, opacity .38s ease, stroke-width .38s ease;
 }
 @keyframes flagwave {
   0%, 100% { transform: skewY(0deg) translateY(0); }

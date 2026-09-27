@@ -51,7 +51,6 @@
   const frameLayers = L.layerGroup().addTo(map);
   const stateLabelLayer = L.layerGroup().addTo(map);
   const citiesLayer = L.layerGroup().addTo(map);
-  const countyBoundaryLayer = L.layerGroup();
   const eventLayer = L.layerGroup().addTo(map);
   const battleEntryLayer = L.layerGroup().addTo(map);
   const routeLayer = L.layerGroup().addTo(map);
@@ -116,8 +115,7 @@
     "古代水系与山脉": hydroLayer,
     "关隘与长城": passLayer,
     "民族迁徙箭头": migrationLayer,
-    "重要城市": citiesLayer,
-    "郡级单元边界（默认关）": countyBoundaryLayer
+    "重要城市": citiesLayer
   };
   if (window.HISTORICAL_REFERENCE_OVERLAY?.url) {
     overlayMaps["历史地图参考（自备合法扫描图）"] = historicalReferenceLayer;
@@ -160,7 +158,6 @@
 
   const battleEntries = Object.entries(BATTLES).map(([id, battle]) => ({ id, ...battle }));
   const territoryCache = new Map();
-  const frameStateCache = new Map();
 
   let currentIndex = 0;
   let selectedState = null;
@@ -170,11 +167,41 @@
   let battleAutoTimer = null;
   let currentTerritories = [];
 
-  const REGION_FEATURES = (window.MANUAL_ZONE_FEATURES || []).map((feature) => cloneFeature(feature));
-  drawLandOutline();
-
   function cloneFeature(feature) {
     return JSON.parse(JSON.stringify(feature));
+  }
+
+  function ensureFrontierPattern() {
+    map.whenReady(() => {
+      const svg = map.getPanes().overlayPane.querySelector("svg");
+      if (!svg) return;
+      let defs = svg.querySelector("defs");
+      if (!defs) {
+        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.insertBefore(defs, svg.firstChild);
+      }
+      if (defs.querySelector("#frontierHatch")) return;
+      const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+      pattern.setAttribute("id", "frontierHatch");
+      pattern.setAttribute("width", "8");
+      pattern.setAttribute("height", "8");
+      pattern.setAttribute("patternUnits", "userSpaceOnUse");
+      pattern.setAttribute("patternTransform", "rotate(35)");
+      const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bg.setAttribute("width", "8");
+      bg.setAttribute("height", "8");
+      bg.setAttribute("fill", "rgba(170,170,170,0.12)");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "0");
+      line.setAttribute("y1", "0");
+      line.setAttribute("x2", "0");
+      line.setAttribute("y2", "8");
+      line.setAttribute("stroke", "rgba(40,40,40,0.45)");
+      line.setAttribute("stroke-width", "2");
+      pattern.appendChild(bg);
+      pattern.appendChild(line);
+      defs.appendChild(pattern);
+    });
   }
 
   function drawLandOutline() {
@@ -189,6 +216,9 @@
       }
     }).addTo(landLayer);
   }
+
+  drawLandOutline();
+  ensureFrontierPattern();
 
   function safeState(id) {
     return STATES[id] || { name: id || "未知", short: "?", color: "#777", years: "", founder: "", ethnicity: "", capitals: [], rulers: "", fall: "", family: "未知", pattern: "solid", bannerBasis: "暂无说明。" };
@@ -280,24 +310,23 @@
     return battleEntries.filter((battle) => battle.years.includes(year));
   }
 
-  function buildStateAssignments(frame) {
-    const cached = frameStateCache.get(frame.year);
-    if (cached) return cached;
-    const mapByRegion = {};
-    REGION_FEATURES.forEach((feature) => {
-      mapByRegion[feature.properties.zone] = frame.zones[feature.properties.zone] || null;
+  function resolveFrameYear(year) {
+    const available = (window.GENERATED_KEYFRAME_YEARS || []).slice().sort((a, b) => a - b);
+    if (!available.length) return year;
+    let resolved = available[0];
+    available.forEach((item) => {
+      if (item <= year) resolved = item;
     });
-    frameStateCache.set(frame.year, mapByRegion);
-    return mapByRegion;
+    return resolved;
   }
 
   function buildTerritories(frame) {
-    if (territoryCache.has(frame.year)) return territoryCache.get(frame.year);
-    const stateByRegion = buildStateAssignments(frame);
-    const generated = (window.GENERATED_TERRITORIES_BY_YEAR || {})[frame.year];
+    const resolvedYear = resolveFrameYear(frame.year);
+    if (territoryCache.has(resolvedYear)) return territoryCache.get(resolvedYear);
+    const generated = (window.GENERATED_TERRITORIES_BY_YEAR || {})[resolvedYear];
     const territories = (generated || []).map((feature) => cloneFeature(feature));
-    const payload = { territories, stateByRegion };
-    territoryCache.set(frame.year, payload);
+    const payload = { territories, resolvedYear };
+    territoryCache.set(resolvedYear, payload);
     return payload;
   }
 
@@ -310,7 +339,7 @@
       color: dimmedBySelection || unrelated ? "#8c8c8c" : "#3e3328",
       weight: selectedState === stateId ? 2.6 : activeBattle && (activeBattle.polities || []).includes(stateId) ? 2.2 : 1.85,
       fillColor: state.color,
-      fillOpacity: unrelated ? 0.08 : dimmedBySelection ? 0.12 : selectedState === stateId ? 0.38 : 0.3
+      fillOpacity: unrelated ? 0.08 : dimmedBySelection ? 0.12 : selectedState === stateId ? 0.42 : 0.35
     };
   }
 
@@ -431,8 +460,7 @@
     territoryGlowLayer.clearLayers();
     frameLayers.clearLayers();
     stateLabelLayer.clearLayers();
-    countyBoundaryLayer.clearLayers();
-    const { territories, stateByRegion } = buildTerritories(frame);
+    const { territories } = buildTerritories(frame);
     currentTerritories = territories;
 
     L.geoJSON(territories, {
@@ -451,29 +479,26 @@
     }).addTo(territoryGlowLayer);
 
     L.geoJSON(territories, {
-      style: (feature) => styleTerritory(feature.properties.stateId),
-      onEachFeature: (feature, layer) => {
-        const sid = feature.properties.stateId;
-        layer.bindTooltip(safeState(sid).name);
-        layer.on("click", () => buildStateCard(sid));
-      }
-    }).addTo(frameLayers);
-
-    L.geoJSON(REGION_FEATURES, {
-      className: "county-boundary",
       style: (feature) => {
-        const sid = stateByRegion[feature.properties.zone];
+        const base = styleTerritory(feature.properties.stateId);
         return {
-          color: safeState(sid).color,
-          weight: 0.6,
-          opacity: 0.45,
-          fillOpacity: 0
+          ...base,
+          weight: feature.properties.frontier ? 1.9 : base.weight,
+          dashArray: feature.properties.frontier ? "6 5" : ""
         };
       },
       onEachFeature: (feature, layer) => {
-        layer.bindTooltip(`${feature.properties.name} · ${safeState(stateByRegion[feature.properties.zone]).name}`);
+        const sid = feature.properties.stateId;
+        layer.bindTooltip(safeState(sid).name);
+        if (feature.properties.frontier) {
+          layer.on("add", () => {
+            const el = layer.getElement();
+            if (el) el.setAttribute("fill", "url(#frontierHatch)");
+          });
+        }
+        layer.on("click", () => buildStateCard(sid));
       }
-    }).addTo(countyBoundaryLayer);
+    }).addTo(frameLayers);
 
     drawLegend(territories);
     renderStateLabels(territories);
@@ -559,7 +584,9 @@
     const ranges = {};
 
     TIMELINE_FRAMES.forEach((frame) => {
-      const stateIds = new Set(Object.values(frame.zones));
+      const resolvedYear = resolveFrameYear(frame.year);
+      const generated = (window.GENERATED_TERRITORIES_BY_YEAR || {})[resolvedYear] || [];
+      const stateIds = new Set(generated.map((item) => item.properties.stateId));
       stateIds.forEach((sid) => {
         if (!ranges[sid]) ranges[sid] = { min: frame.year, max: frame.year };
         ranges[sid].min = Math.min(ranges[sid].min, frame.year);
@@ -655,8 +682,8 @@
 
     TIMELINE_FRAMES.forEach((frame) => {
       const counts = {};
-      REGION_FEATURES.forEach((feature) => {
-        const sid = frame.zones[feature.properties.zone] || null;
+      const resolvedYear = resolveFrameYear(frame.year);
+      ((window.UNIT_ASSIGNMENTS_BY_YEAR || {})[resolvedYear] ? Object.values((window.UNIT_ASSIGNMENTS_BY_YEAR || {})[resolvedYear]) : []).forEach((sid) => {
         if (!sid) return;
         counts[sid] = (counts[sid] || 0) + 1;
       });
@@ -673,7 +700,7 @@
 
     const minY = TIMELINE_FRAMES[0].year;
     const maxY = TIMELINE_FRAMES[TIMELINE_FRAMES.length - 1].year;
-    const maxV = REGION_FEATURES.length;
+    const maxV = Object.keys(window.UNIT_META_BY_ID || {}).length || 1;
     const x = (value) => 50 + ((value - minY) / (maxY - minY)) * (canvas.width - 70);
     const y = (value) => canvas.height - 32 - (value / maxV) * (canvas.height - 54);
 
