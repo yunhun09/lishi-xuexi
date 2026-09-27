@@ -1,0 +1,12 @@
+{
+  "name": "lishi-xuexi",
+  "version": "1.0.0",
+  "description": "265-589 历史地图静态站点",
+  "scripts": {
+    "build": "node tools/build.mjs"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "topojson-client": "^3.1.0"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "@meta": {
+    "year": 366,
+    "basedOn": 350
+  },
+  "@assign": {
+    "@zone:hebei_north": "qianyan",
+    "@zone:hebei_south": "ranwei",
+    "@zone:shandong": "ranwei",
+    "@zone:huaibei": "ranwei",
+    "@zone:shanxi": "houzhao",
+    "@zone:henan": "ranwei",
+    "@zone:huainan": "dongjin",
+    "@zone:hexi_west": "qianliang",
+    "@zone:hexi_east": "qianliang",
+    "@zone:longyou": "qianqin",
+    "@zone:guanzhong": "qianqin",
+    "@zone:hetao": "daiguo",
+    "@zone:qinghai": "tuyuhun",
+    "@zone:xiyu": "gaoche",
+    "@zone:liaodong": "qianyan",
+    "@zone:koguryo": "goguryeo",
+    "@zone:steppe_east": "daiguo",
+    "@zone:steppe_west": "gaoche",
+    "@zone:hanzhong": "qiuchi",
+    "@zone:bashu": "dongjin",
+    "@zone:nanzhong": "dongjin",
+    "@zone:jingbei": "dongjin",
+    "@zone:jiangling": "dongjin",
+    "@zone:jianghan": "dongjin",
+    "@zone:jiangdong": "dongjin",
+    "@zone:liangzhe": "dongjin",
+    "@zone:jiangxi": "dongjin",
+    "@zone:hunan": "dongjin",
+    "@zone:lingnan_east": "dongjin",
+    "@zone:lingnan_west": "dongjin",
+    "@zone:jiaozhou": "dongjin"
+  }
+}

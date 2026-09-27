@@ -1,0 +1,39 @@
+{
+  "@meta": {
+    "year": 280,
+    "basedOn": 280
+  },
+  "@assign": {
+    "@zone:hebei_north": "xijin",
+    "@zone:hebei_south": "xijin",
+    "@zone:shandong": "xijin",
+    "@zone:huaibei": "xijin",
+    "@zone:shanxi": "xijin",
+    "@zone:henan": "xijin",
+    "@zone:huainan": "xijin",
+    "@zone:hexi_west": "xijin",
+    "@zone:hexi_east": "xijin",
+    "@zone:longyou": "xijin",
+    "@zone:guanzhong": "xijin",
+    "@zone:hetao": "xijin",
+    "@zone:qinghai": "xijin",
+    "@zone:xiyu": "xijin",
+    "@zone:liaodong": "xijin",
+    "@zone:koguryo": "goguryeo",
+    "@zone:steppe_east": "daiguo",
+    "@zone:steppe_west": "gaoche",
+    "@zone:hanzhong": "xijin",
+    "@zone:bashu": "xijin",
+    "@zone:nanzhong": "xijin",
+    "@zone:jingbei": "xijin",
+    "@zone:jiangling": "xijin",
+    "@zone:jianghan": "xijin",
+    "@zone:jiangdong": "xijin",
+    "@zone:liangzhe": "xijin",
+    "@zone:jiangxi": "xijin",
+    "@zone:hunan": "xijin",
+    "@zone:lingnan_east": "xijin",
+    "@zone:lingnan_west": "xijin",
+    "@zone:jiaozhou": "xijin"
+  }
+}
