@@ -382,12 +382,13 @@
         const short = escapeHtml(state.short || stateDisplayName(state).slice(0, 1));
         const name = escapeHtml(stateDisplayName(state).split("").join(" "));
         const tooltipText = `${escapeHtml(state.name)}｜${escapeHtml(state.bannerBasis)}`;
+        const accessibleText = escapeHtml(`${state.name}，旗色依据：${state.bannerBasis}`);
         const flagStyle = decorateFlag(state);
         L.marker([point[1], point[0]], {
           pane: "stateLabelPane",
           icon: L.divIcon({
             className: "",
-            html: `<div class="state-label">
+            html: `<div class="state-label" role="img" aria-label="${accessibleText}" title="${accessibleText}">
               <div class="state-flag-wrap">
                 <span class="state-pole"></span>
                 <span class="state-flag-banner" style="background:${flagStyle.bg};border:${flagStyle.border}">${short}</span>
@@ -422,11 +423,12 @@
         const escapedModern = escapeHtml(city.modern || "");
         const escapedCapitalStateName = escapeHtml(capitalStateName);
         const tooltipText = `${escapeHtml(city.name)}｜${escapedModern}${capitalStateName ? `｜${escapedCapitalStateName}都城` : ""}`;
+        const accessibleText = `${city.name}，${city.modern || "今地未详"}${capitalStateName ? `，${capitalStateName}都城` : ""}`;
         L.marker([city.lat, city.lng], {
           pane: "cityLabelPane",
           icon: L.divIcon({
             className: "",
-            html: `<div class="city-label">
+            html: `<div class="city-label" role="img" aria-label="${escapeHtml(accessibleText)}" title="${escapeHtml(accessibleText)}">
               <span class="city-symbol ${symbolClass}"></span>
               <span>
                 <span class="city-name ${activeCapital ? "capital-active" : ""}" style="font-size:${fontSize}px">${escapedLabel}</span>
@@ -901,7 +903,7 @@
     document.getElementById("eventSearch").oninput = () => renderFrame(currentIndex, { preserveBattle: true });
   }
 
-  function renderFrame(index, options = {}) {
+  function renderFrame(index, { preserveBattle = false } = {}) {
     currentIndex = Math.max(0, Math.min(TIMELINE_FRAMES.length - 1, index));
     slider.value = currentIndex;
     const frame = TIMELINE_FRAMES[currentIndex];
@@ -913,7 +915,7 @@
     renderEvents(frame.year);
     renderBattleEntries(frame.year);
     drawTimelineBands();
-    if (activeBattleId && options.preserveBattle) {
+    if (activeBattleId && preserveBattle) {
       renderBattleMap(activePhaseIndex);
     }
   }
