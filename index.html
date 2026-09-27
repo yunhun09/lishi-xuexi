@@ -3,23 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>两晋十六国·南北朝 政权与疆域可视化（265—589）</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>两晋十六国·南北朝 政权与战役地图（265—589）</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext x='8' y='46' font-size='40'%3E%E2%9A%94%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet-1.9.4.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header class="topbar">
-    <h1>两晋十六国・南北朝（265—589）政权演变地图</h1>
-    <p class="disclaimer">边界为示意重建，精度约为州郡级（参考谭其骧《中国历史地图集》与 CHGIS 的近似抽象）。</p>
+    <h1>两晋十六国・南北朝（265—589）政权演变与战役地图</h1>
+    <p class="disclaimer">疆域以东亚陆地轮廓裁剪后的州郡治所 Voronoi 单元合并重建；战役模式含路线、兵力、阶段说明与史料卷次。</p>
   </header>
 
   <main class="layout">
     <section class="map-wrap">
       <div id="map"></div>
-      <div id="battlePanel" class="battle-panel hidden"></div>
+      <section id="battlePanel" class="battle-panel hidden" aria-live="polite"></section>
       <button id="lineageToggle" class="floating-btn">政权谱系图</button>
       <button id="areaToggle" class="floating-btn second">疆域占比</button>
     </section>
@@ -36,12 +34,21 @@
         <button id="nextBtn">下一帧 ▶</button>
         <label>速度
           <select id="speedSelect">
-            <option value="2200">慢</option>
-            <option value="1400" selected>中</option>
-            <option value="700">快</option>
+            <option value="2400">慢</option>
+            <option value="1600" selected>中</option>
+            <option value="900">快</option>
           </select>
         </label>
       </div>
+
+      <section class="battle-entry-wrap">
+        <div class="battle-entry-head">
+          <h3>⚔ 战役</h3>
+          <button id="battleJumpBtn" class="battle-jump-btn">查看当年战役</button>
+        </div>
+        <div id="battleEntryHint" class="battle-entry-hint">当前年份暂无战役。</div>
+        <div id="battleYearList" class="battle-year-list"></div>
+      </section>
 
       <div class="legend-wrap">
         <h3>当前政权图例（点击高亮）</h3>
@@ -63,6 +70,7 @@
 
   <section class="timeline-wrap">
     <input type="range" min="0" value="0" id="timelineSlider" aria-label="时间轴年份滑块" />
+    <div id="battleTimeline" class="battle-timeline" aria-label="战役入口时间轴"></div>
     <svg id="timelineBands" role="img" aria-label="政权存续色带"></svg>
   </section>
 
@@ -76,13 +84,16 @@
 
   <section id="areaPanel" class="overlay hidden">
     <div class="overlay-inner">
-      <h2>疆域占比（示意：按州郡单元计数）</h2>
+      <h2>疆域占比（示意：按郡级单元计数）</h2>
       <canvas id="areaCanvas" width="920" height="300"></canvas>
       <button class="close-overlay" data-close="areaPanel">关闭</button>
     </div>
   </section>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="vendor/leaflet/leaflet-1.9.4.js"></script>
+  <script src="vendor/d3/d3-delaunay-6.0.4.min.js"></script>
+  <script src="vendor/turf/turf-7.2.0.min.js"></script>
+  <script src="data/land.geojson.js"></script>
   <script src="data/regions.js"></script>
   <script src="data/states.js"></script>
   <script src="data/events.js"></script>
