@@ -21,7 +21,7 @@
 - `tools/build-territories.mjs`：从手工边界拓扑生成 `data/territories.generated.js`，并做闭合/重叠校验
 - `tools/check-extent.mjs`：检查疆域是否越出 73–135E / 16–55N 掩膜及西南/中亚排除区
 - `vendor/`：本地化依赖（Leaflet 1.9.4、@turf/turf 7.2.0；保留 vendored 依赖，运行时不依赖 CDN）
-- `docs/screenshots/`：关键帧与战役模式核对截图
+- `docs/screenshots/`：关键帧与战役模式核对截图（`compare/` 子目录为手工拓扑改造后关键年份的核对截图）
 
 ## 疆域几何的构建方式
 
