@@ -5,17 +5,28 @@
 ## 目录结构
 
 - `index.html`：页面入口
-- `css/style.css`：样式（宣纸风、移动端适配）
-- `js/app.js`：地图渲染、时间轴、事件过滤、战役交互、谱系图与统计图
-- `data/regions.js`：州郡级示意区块（80+）+ 古水系/山脉/关隘/长城/迁徙路线
+- `css/style.css`：样式（宣纸风、移动端适配、战役面板与阶段时间条）
+- `js/app.js`：地图渲染（Voronoi 疆域重建与合并）、时间轴、事件过滤、战役模式、谱系图与统计图
+- `data/land.geojson.js`：东亚陆地轮廓（源自 Natural Earth 海岸线，裁剪至约 E73–135、N15–50，简化后内联）
+- `data/regions.js`：190+ 个州郡治所种子点 + 自然界线（秦岭—淮河、长江、太行、南岭、河西走廊等）成对辅助点 + 古水系/山脉/关隘/长城/迁徙路线
 - `data/states.js`：政权数据（含十六国扩展、族属色系、信息卡字段、谱系边）
-- `data/events.js`：事件数据（150+，含类型、坐标、史料字段）
-- `data/timeline.js`：80+ 帧时间序列（关键区段 2 年粒度）
-- `data/battles.js`：重点战役分阶段与路线动画数据
+- `data/events.js`：事件数据（含类型、坐标、史料字段）
+- `data/timeline.js`：28 个关键帧（265—589），按分区分配政权归属
+- `data/battles.js`：17 场重点战役的分阶段路线、兵力、态势与结果卡片数据
+- `vendor/`：本地化依赖（Leaflet 1.9.4、d3-delaunay 6.0.4、@turf/turf 7.2.0），运行时不依赖 CDN
+- `docs/screenshots/`：关键帧与战役模式核对截图
+
+## 疆域几何的构建方式
+
+1. **陆地轮廓**：以 Natural Earth 海岸线数据裁出东亚范围，山东半岛、辽东半岛、雷州半岛、海南、台湾均可辨识；台湾不属于任何政权，不着色。
+2. **基本单元**：以 190+ 个郡国治所为种子点（坐标参照谭其骧《中国历史地图集》第三、四册及 CHGIS 治所点），用 `d3-delaunay` 生成 Voronoi 图，再用 `turf.intersect` 以陆地轮廓裁剪，得到彼此无缝、无重叠、外缘为真实海岸线的郡级单元。
+3. **自然界线约束**：在秦岭—淮河、长江中下游、太行山、黄河河套、阴山、河西走廊南北两山、大别山、南岭等界线两侧成对布设辅助种子点，使政权边界贴合地形。
+4. **政权合并**：每一帧先把单元分给各政权，再用 `turf.union` 将同一政权的单元合成整体面渲染，图上只显示政权之间的边界；郡级单元边界放在可选的淡色细虚线图层中，默认关闭。
+5. **性能**：合并结果按帧缓存，全部在浏览器内计算，无构建步骤。
 
 ## 使用方法
 
-1. 直接打开 `index.html`（需联网加载 Leaflet 与底图）。
+1. 直接打开 `index.html`（Leaflet、d3-delaunay、turf 均已本地化，仅底图瓦片需联网；离线时疆域仍可正常渲染）。
 2. 或启用 GitHub Pages：
    - 仓库 `Settings` → `Pages`
    - Source 选择 `Deploy from a branch`
@@ -24,14 +35,53 @@
 
 ## 功能说明
 
-- 地图：地形底图 + 州郡级示意边界
-- 图层开关：古代水系/山脉、关隘与长城、人口南迁路线
+- 地图：地形底图 + Voronoi 重建、按政权合并的连续疆域
+- 图层开关：古代水系/山脉、关隘与长城、人口南迁路线、郡级单元边界（默认关）
 - 时间轴：滑块、播放/暂停、速度、逐帧、键盘左右键
 - 事件流：类型筛选 + 搜索，地图脉冲点同步
 - 政权卡：点击政权或图例查看建立者、族属、都城、存续、君主、灭亡原因
-- 重点战役：路线动画、兵力说明、分阶段过程、结果与影响、史料卷次
+- 战役模式：右侧面板与时间轴上的 ⚔ 入口（当年有战役时高亮），点开后自动缩放到战区、其余政权淡化；带箭头的红/蓝进军路线（撤退为虚线）沿河谷驿道绘制，营垒/城池/渡口与交战点脉冲图标；下方阶段时间条支持上一步/下一步/自动播放，每步更新路线、部队旗号与兵力、态势和文字说明（含史料卷次）；最后一步显示胜负、伤亡（史载并注明争议）、疆域变化与历史影响的结果卡片
 - 政权谱系图：展示继承、分裂、灭亡关系
 - 疆域占比图：按州郡单元数统计的示意占比趋势
+
+## 关键帧核对（对照谭其骧《中国历史地图集》）
+
+以下截图取自浏览器实际渲染，核对要点包括：淝水前前秦与东晋以淮河—汉水—大巴山为界；439 年北魏西至敦煌、北至阴山；469 年后刘宋失淮北；553 年西魏取蜀、554 年立西梁于江陵；陈以长江为界；高句丽、吐谷浑、柔然、突厥出现在边缘。
+
+| 年份 | 大势 | 截图 |
+| --- | --- | --- |
+| 280 | 西晋统一 | ![280](docs/screenshots/frame-280-main.png) |
+| 317 | 东晋立国，北方失陷 | ![317](docs/screenshots/frame-317-main.png) |
+| 329 | 后赵称雄 | ![329](docs/screenshots/frame-329-main.png) |
+| 350 | 后赵崩解、冉魏 | ![350](docs/screenshots/frame-350-main.png) |
+| 370 | 前秦灭前燕 | ![370](docs/screenshots/frame-370-main.png) |
+| 376 | 前秦统一北方 | ![376](docs/screenshots/frame-376-main.png) |
+| 383 | 淝水之战前后 | ![383](docs/screenshots/frame-383-main.png) |
+| 395 | 参合陂后北方再裂 | ![395](docs/screenshots/frame-395-main.png) |
+| 400 | 河西诸凉并立 | ![400](docs/screenshots/frame-400-main.png) |
+| 407 | 胡夏立国 | ![407](docs/screenshots/frame-407-main.png) |
+| 417 | 刘裕灭后秦 | ![417](docs/screenshots/frame-417-main.png) |
+| 420 | 刘宋代晋 | ![420](docs/screenshots/frame-420-main.png) |
+| 439 | 北魏统一北方（西至敦煌、北至阴山） | ![439](docs/screenshots/frame-439-main.png) |
+| 450 | 元嘉北伐前后 | ![450](docs/screenshots/frame-450-main.png) |
+| 469 | 刘宋失淮北 | ![469](docs/screenshots/frame-469-main.png) |
+| 494 | 北魏迁都洛阳 | ![494](docs/screenshots/frame-494-main.png) |
+| 520 | 南梁与北魏对峙 | ![520](docs/screenshots/frame-520-main.png) |
+| 535 | 东西魏分立 | ![535](docs/screenshots/frame-535-main.png) |
+| 547 | 侯景之乱前夜 | ![547](docs/screenshots/frame-547-main.png) |
+| 552 | 侯景乱后、突厥兴起 | ![552](docs/screenshots/frame-552-main.png) |
+| 557 | 陈立国、北周代西魏（西梁在江陵） | ![557](docs/screenshots/frame-557-main.png) |
+| 562 | 周齐陈三分（陈以长江为界） | ![562](docs/screenshots/frame-562-main.png) |
+| 577 | 北周灭北齐 | ![577](docs/screenshots/frame-577-main.png) |
+| 581 | 隋代周 | ![581](docs/screenshots/frame-581-main.png) |
+| 589 | 隋灭陈、天下一统 | ![589](docs/screenshots/frame-589-main.png) |
+
+战役模式示例：
+
+| 战役 | 截图 |
+| --- | --- |
+| 淝水之战（阶段 2） | ![淝水](docs/screenshots/battle-feishui-phase2.png) |
+| 隋灭陈（阶段 3） | ![隋灭陈](docs/screenshots/battle-sui-mie-chen-phase3.png) |
 
 ## 数据来源与精度声明
 
@@ -45,6 +95,7 @@
 ## 扩展数据
 
 - 新增政权：在 `data/states.js` 增加条目并设置 `color/family/pattern`。
-- 新增时间帧：在 `data/timeline.js` 增加 `keyframes` 或调整帧生成粒度。
+- 新增时间帧：在 `data/timeline.js` 的 `keyframes` 中按分区（zone）指定政权归属。
+- 新增郡治种子点：在 `data/regions.js` 的 `seats` 中追加 `[id, 名称, 纬度, 经度, 分区]`。
 - 新增事件：在 `data/events.js` 追加事件（年份、类型、标题、坐标、史料）。
 - 新增战役详解：在 `data/battles.js` 增加 `phases/routes/refs`。
