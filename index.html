@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>两晋十六国·南北朝 政权与疆域可视化（265—589）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>两晋十六国・南北朝（265—589）政权演变地图</h1>
+    <p class="disclaimer">边界为示意重建，精度约为州郡级（参考谭其骧《中国历史地图集》与 CHGIS 的近似抽象）。</p>
+  </header>
+
+  <main class="layout">
+    <section class="map-wrap">
+      <div id="map"></div>
+      <div id="battlePanel" class="battle-panel hidden"></div>
+      <button id="lineageToggle" class="floating-btn">政权谱系图</button>
+      <button id="areaToggle" class="floating-btn second">疆域占比</button>
+    </section>
+
+    <aside class="sidebar">
+      <div class="year-box">
+        <div id="year">265</div>
+        <div id="era"></div>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn">◀ 上一帧</button>
+        <button id="playBtn">▶ 播放</button>
+        <button id="nextBtn">下一帧 ▶</button>
+        <label>速度
+          <select id="speedSelect">
+            <option value="2200">慢</option>
+            <option value="1400" selected>中</option>
+            <option value="700">快</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="legend-wrap">
+        <h3>当前政权图例（点击高亮）</h3>
+        <div id="legend"></div>
+      </div>
+
+      <div class="events-wrap">
+        <h3>事件流</h3>
+        <div class="event-tools">
+          <select id="eventTypeFilter"></select>
+          <input id="eventSearch" aria-label="搜索事件" placeholder="搜索事件/人物/地点" />
+        </div>
+        <div id="events"></div>
+      </div>
+
+      <div class="state-card" id="stateCard">点击地图政权查看详情。</div>
+    </aside>
+  </main>
+
+  <section class="timeline-wrap">
+    <input type="range" min="0" value="0" id="timelineSlider" aria-label="时间轴年份滑块" />
+    <svg id="timelineBands" role="img" aria-label="政权存续色带"></svg>
+  </section>
+
+  <section id="lineagePanel" class="overlay hidden">
+    <div class="overlay-inner">
+      <h2>政权谱系图（简化）</h2>
+      <svg id="lineageSvg"></svg>
+      <button class="close-overlay" data-close="lineagePanel">关闭</button>
+    </div>
+  </section>
+
+  <section id="areaPanel" class="overlay hidden">
+    <div class="overlay-inner">
+      <h2>疆域占比（示意：按州郡单元计数）</h2>
+      <canvas id="areaCanvas" width="920" height="300"></canvas>
+      <button class="close-overlay" data-close="areaPanel">关闭</button>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data/regions.js"></script>
+  <script src="data/states.js"></script>
+  <script src="data/events.js"></script>
+  <script src="data/timeline.js"></script>
+  <script src="data/battles.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
