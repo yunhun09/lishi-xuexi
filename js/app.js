@@ -168,6 +168,7 @@
   let activeBattleId = null;
   let activePhaseIndex = 0;
   let battleAutoTimer = null;
+  let currentTerritories = [];
 
   const REGION_FEATURES = buildRegionFeatures();
   drawLandOutline();
@@ -252,18 +253,25 @@
       .replace(/'/g, "&#39;");
   }
 
-  function approxLabelBox(latlng, city, zoom) {
-    const pt = map.latLngToLayerPoint(latlng);
+  function cityLabelMetrics(city, zoom) {
     const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.7) : Math.max(10, zoom * 1.45);
     const labelText = `${city.name}${city.activeCapital ? "【京】" : ""}`;
     const modernWidth = zoom >= 6.8 ? String(city.modern || "").length * 6.6 : 0;
-    const width = Math.max(labelText.length * (fontSize * 0.92), modernWidth) + 26;
-    const height = zoom >= 6.8 ? 32 : 20;
+    return {
+      fontSize,
+      width: Math.max(labelText.length * (fontSize * 0.92), modernWidth) + 26,
+      height: zoom >= 6.8 ? 32 : 20
+    };
+  }
+
+  function approxLabelBox(latlng, city, zoom) {
+    const pt = map.latLngToLayerPoint(latlng);
+    const metrics = cityLabelMetrics(city, zoom);
     return {
       left: pt.x,
-      right: pt.x + width,
+      right: pt.x + metrics.width,
       top: pt.y - 10,
-      bottom: pt.y + height
+      bottom: pt.y + metrics.height
     };
   }
 
@@ -384,7 +392,7 @@
         const tooltipText = `${escapeHtml(state.name)}｜${escapeHtml(state.bannerBasis)}`;
         const accessibleText = escapeHtml(`${state.name}，旗色依据：${state.bannerBasis}`);
         const flagStyle = decorateFlag(state);
-        L.marker([point[1], point[0]], {
+        const marker = L.marker([point[1], point[0]], {
           pane: "stateLabelPane",
           icon: L.divIcon({
             className: "",
@@ -399,6 +407,13 @@
             iconAnchor: [14, fontSize * 1.6]
           })
         }).bindTooltip(tooltipText, { direction: "top" }).addTo(stateLabelLayer);
+        const el = marker.getElement();
+        if (el) {
+          el.setAttribute("role", "img");
+          el.setAttribute("aria-label", `${state.name}，旗色依据：${state.bannerBasis}`);
+          el.setAttribute("title", `${state.name}，旗色依据：${state.bannerBasis}`);
+          el.setAttribute("tabindex", "0");
+        }
       });
   }
 
@@ -416,7 +431,8 @@
         const bbox = approxLabelBox(L.latLng(city.lat, city.lng), city, zoom);
         if (acceptedBoxes.some((box) => boxesOverlap(box, bbox))) return;
         acceptedBoxes.push(bbox);
-        const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.75) : Math.max(10, zoom * 1.45);
+        const metrics = cityLabelMetrics(city, zoom);
+        const fontSize = metrics.fontSize;
         const symbolClass = city.level === "capital" ? "capital" : city.level === "major" ? "major" : "minor";
         const capitalStateName = activeCapital ? safeState(activeCapital.state).name : "";
         const escapedLabel = escapeHtml(labelText);
@@ -424,7 +440,7 @@
         const escapedCapitalStateName = escapeHtml(capitalStateName);
         const tooltipText = `${escapeHtml(city.name)}｜${escapedModern}${capitalStateName ? `｜${escapedCapitalStateName}都城` : ""}`;
         const accessibleText = `${city.name}，${city.modern || "今地未详"}${capitalStateName ? `，${capitalStateName}都城` : ""}`;
-        L.marker([city.lat, city.lng], {
+        const marker = L.marker([city.lat, city.lng], {
           pane: "cityLabelPane",
           icon: L.divIcon({
             className: "",
@@ -435,10 +451,17 @@
                 ${zoom >= 6.8 ? `<div class="city-modern">${escapedModern}${capitalStateName ? `｜${escapedCapitalStateName}` : ""}</div>` : ""}
               </span>
             </div>`,
-            iconSize: [Math.max(90, fontSize * 6), zoom >= 6.8 ? 34 : 20],
+            iconSize: [Math.max(90, metrics.width), metrics.height],
             iconAnchor: [0, 8]
           })
         }).bindTooltip(tooltipText).addTo(citiesLayer);
+        const el = marker.getElement();
+        if (el) {
+          el.setAttribute("role", "img");
+          el.setAttribute("aria-label", accessibleText);
+          el.setAttribute("title", accessibleText);
+          el.setAttribute("tabindex", "0");
+        }
       });
   }
 
@@ -448,6 +471,7 @@
     stateLabelLayer.clearLayers();
     countyBoundaryLayer.clearLayers();
     const { territories, stateByRegion } = buildTerritories(frame);
+    currentTerritories = territories;
 
     L.geoJSON(territories, {
       pane: "territoryGlowPane",
@@ -925,7 +949,10 @@
   playBtn.onclick = playToggle;
   speedSelect.onchange = () => { if (timer) playToggle(), playToggle(); };
   slider.oninput = () => renderFrame(Number(slider.value));
-  map.on("zoomend", () => renderFrame(Number(slider.value), { preserveBattle: true }));
+  map.on("zoomend", () => {
+    renderStateLabels(currentTerritories);
+    renderCities(TIMELINE_FRAMES[currentIndex].year);
+  });
   battleJumpBtn.onclick = () => {
     const current = battleForYear(TIMELINE_FRAMES[currentIndex].year);
     if (current.length) openBattle(current[0].id);
