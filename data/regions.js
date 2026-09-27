@@ -1,7 +1,7 @@
 /*
- * 种子点与自然边界辅助点。
- * 以州郡治所为主，并在秦岭—淮河—长江—太行等关键界线上增设辅助点，
- * 供 d3-delaunay + Turf 在浏览器中重建连续无缝的裁剪疆域单元。
+ * 州郡治所与自然地理/战略要素。
+ * 治所点仅保留作史地参考与城市标注数据来源，不再参与疆域计算；
+ * 疆域几何已改为由 Node 构建脚本根据手工边界拓扑预生成。
  */
 (function () {
   const seats = [["youzhou-jixian", "蓟县", 39.9, 116.4, "hebei_north"], ["youzhou-yuyang", "渔阳", 40.05, 117.2, "hebei_north"], ["youzhou-zhongshan", "中山", 38.52, 114.48, "hebei_south"], ["jizhou-ye", "邺", 36.2, 114.48, "hebei_south"], ["jizhou-wei", "魏郡", 36.68, 115.1, "hebei_south"], ["hebei-xiangguo", "襄国", 37.07, 114.49, "hebei_south"], ["haihe-cangzhou", "沧州", 38.31, 116.83, "hebei_north"], ["qingzhou-linqi", "临淄", 36.82, 118.31, "shandong"], ["qingzhou-jinan", "济南", 36.67, 117.02, "shandong"], ["qingzhou-beihai", "北海", 36.79, 119.12, "shandong"], ["yanzhou-taishan", "泰山", 36.2, 117.09, "shandong"], ["yanzhou-dongping", "东平", 35.94, 116.3, "shandong"], ["xuzhou-pengcheng", "彭城", 34.26, 117.19, "huaibei"], ["xuzhou-xiapi", "下邳", 34.32, 118.0, "huaibei"], ["huaihe-siyang", "泗阳", 33.72, 118.68, "huaibei"], ["bingzhou-jinyang", "晋阳", 37.87, 112.55, "shanxi"], ["bingzhou-shangdang", "上党", 36.2, 113.12, "shanxi"], ["bingzhou-yanmen", "雁门", 39.0, 112.92, "shanxi"], ["sizhou-luoyang", "洛阳", 34.62, 112.45, "henan"], ["sizhou-henei", "河内", 35.03, 113.24, "henan"], ["yuzhou-chenliu", "陈留", 34.8, 114.3, "henan"], ["yuzhou-yingchuan", "颍川", 34.1, 113.48, "henan"], ["henan-bian", "汴州", 34.9, 114.2, "henan"], ["yuzhou-runan", "汝南", 33.0, 114.36, "huainan"], ["yangzhou-shouchun", "寿春", 32.58, 116.78, "huainan"], ["yangzhou-lujiang", "庐江", 31.3, 117.29, "huainan"], ["yangzhou-guangling", "广陵", 32.4, 119.42, "huainan"], ["liangzhou-dunhuang", "敦煌", 40.14, 94.66, "hexi_west"], ["liangzhou-jiuquan", "酒泉", 39.74, 98.49, "hexi_west"], ["liangzhou-zhangye", "张掖", 38.93, 100.45, "hexi_east"], ["liangzhou-guzang", "姑臧", 37.93, 102.64, "hexi_east"], ["liangzhou-wuwei", "武威", 37.93, 102.64, "hexi_east"], ["qinzhou-tianshui", "天水", 34.58, 105.72, "longyou"], ["liangzhou-anding", "安定", 35.73, 107.64, "longyou"], ["hezhou-jincheng", "金城", 36.06, 103.84, "longyou"], ["liangzhou-jiahe", "枹罕", 35.6, 103.21, "longyou"], ["yongzhou-changan", "长安", 34.27, 108.94, "guanzhong"], ["yongzhou-jingzhao", "京兆", 34.38, 109.0, "guanzhong"], ["yongzhou-fufeng", "扶风", 34.37, 107.86, "guanzhong"], ["liangzhou-shuofang", "朔方", 38.84, 106.54, "hetao"], ["liangzhou-wuyuan", "五原", 40.8, 108.8, "hetao"], ["liangzhou-yunzhong", "云中", 40.0, 111.5, "hetao"], ["liangzhou-huhe", "河套", 40.7, 110.2, "hetao"], ["liangzhou-xihai", "西海", 36.82, 100.87, "qinghai"], ["hezhou-xiping", "西平", 36.62, 101.77, "qinghai"], ["qinghai-tuyuhun", "吐谷浑", 36.22, 97.37, "qinghai"], ["xizhou-shanshan", "鄯善", 42.87, 89.54, "xiyu"], ["xizhou-gaochang", "高昌", 42.82, 89.2, "xiyu"], ["xizhou-yiwu", "伊吾", 43.25, 93.52, "xiyu"], ["youzhou-liaoxi", "辽西", 41.3, 120.3, "liaodong"], ["youzhou-liaodong", "辽东", 41.8, 123.43, "liaodong"], ["youzhou-xuantu", "玄菟", 42.4, 124.6, "liaodong"], ["hebei-yingzhou", "营州", 41.1, 121.8, "liaodong"], ["gaogouli-guonei", "国内城", 41.1, 126.19, "koguryo"], ["north-steppe-rouran", "柔然牙庭", 47.5, 108.8, "steppe_east"], ["north-steppe-gaoche", "高车部", 47.1, 90.8, "steppe_west"], ["north-steppe-tujue", "突厥牙庭", 47.3, 86.2, "steppe_west"], ["yongzhou-hanzhong", "汉中", 33.07, 107.02, "hanzhong"], ["yizhou-hanzhong-west", "阴平", 32.0, 104.7, "hanzhong"], ["longxi-wudu", "武都", 33.4, 104.9, "hanzhong"], ["longxi-qiuchi", "仇池", 33.7, 104.0, "hanzhong"], ["yizhou-chengdu", "成都", 30.67, 104.07, "bashu"], ["yizhou-guanghan", "广汉", 31.01, 104.28, "bashu"], ["yizhou-jiangzhou", "江州", 29.56, 106.57, "bashu"], ["yizhou-shu", "蜀郡", 30.5, 103.94, "bashu"], ["yizhou-baidi", "白帝", 31.04, 109.56, "bashu"], ["ningzhou-jianning", "建宁", 25.04, 102.72, "nanzhong"], ["ningzhou-yongchang", "永昌", 25.11, 99.16, "nanzhong"], ["ningzhou-zangke", "牂牁", 26.58, 106.71, "nanzhong"], ["jingzhou-xiangyang", "襄阳", 32.01, 112.12, "jingbei"], ["jingzhou-jiangling", "江陵", 30.35, 112.19, "jiangling"], ["jingzhou-nanjun", "南郡", 30.6, 112.0, "jiangling"], ["jingzhou-wuling", "武陵", 29.0, 110.7, "jianghan"], ["yangzhou-jiankang", "建康", 32.05, 118.78, "jiangdong"], ["yangzhou-danyang", "丹阳", 31.99, 119.57, "jiangdong"], ["jiangnan-wuhu", "芜湖", 31.35, 118.43, "jiangdong"], ["jiangnan-jiankang-south", "建康南", 31.6, 118.9, "jiangdong"], ["yangzhou-kuaiji", "会稽", 30.0, 120.58, "liangzhe"], ["yangzhou-wu", "吴郡", 31.3, 120.62, "liangzhe"], ["yangzhou-poyang", "鄱阳", 28.99, 116.68, "jiangxi"], ["yangzhou-yuzhang", "豫章", 28.68, 115.85, "jiangxi"], ["jingzhou-changsha", "长沙", 28.23, 112.94, "hunan"], ["guangzhou-panyu", "番禺", 23.13, 113.27, "lingnan_east"], ["guangzhou-shixing", "始兴", 24.95, 114.07, "lingnan_east"], ["jingzhou-guilin", "桂林", 25.27, 110.29, "lingnan_west"], ["jiaozhou-hepu", "合浦", 21.68, 109.2, "lingnan_west"], ["jiaozhou-jiaozhi", "交趾", 21.03, 105.85, "jiaozhou"], ["jiaozhou-ri-nan", "日南", 16.47, 107.58, "jiaozhou"]].map(([id, name, lat, lng, zone]) => ({ id, name, lat, lng, zone, kind: "seat" }));
@@ -39,7 +39,7 @@
   addLine("steppe-east", "steppe_east", [[46.20, 106.20], [45.80, 109.20], [45.50, 112.30], [45.00, 115.20]]);
   addLine("xiyu-rim", "xiyu", [[42.20, 87.40], [42.60, 90.30], [42.90, 92.20], [43.10, 94.40]]);
 
-  const regionSeeds = [...seats, ...helpers];
+  const historicSeats = [...seats, ...helpers];
 
   const hydrology = {
     rivers: [
@@ -82,7 +82,7 @@
     ]
   };
 
-  window.REGION_SEEDS = regionSeeds;
+  window.HISTORIC_SEATS = historicSeats;
   window.HYDROLOGY = hydrology;
   window.STRATEGIC_FEATURES = strategic;
 })();
