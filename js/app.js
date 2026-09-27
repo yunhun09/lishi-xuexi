@@ -170,29 +170,11 @@
   let battleAutoTimer = null;
   let currentTerritories = [];
 
-  const REGION_FEATURES = buildRegionFeatures();
+  const REGION_FEATURES = (window.MANUAL_ZONE_FEATURES || []).map((feature) => cloneFeature(feature));
   drawLandOutline();
 
   function cloneFeature(feature) {
     return JSON.parse(JSON.stringify(feature));
-  }
-
-  function buildRegionFeatures() {
-    const points = REGION_SEEDS.map((seed) => [seed.lng, seed.lat]);
-    const voronoi = d3.Delaunay.from(points).voronoi(LAND_BBOX);
-    return REGION_SEEDS.map((seed, index) => {
-      const polygon = voronoi.cellPolygon(index);
-      if (!polygon || polygon.length < 3) return null;
-      const ring = polygon.map(([lng, lat]) => [Number(lng.toFixed(4)), Number(lat.toFixed(4))]);
-      const first = ring[0];
-      const last = ring[ring.length - 1];
-      if (!last || first[0] !== last[0] || first[1] !== last[1]) ring.push(first);
-      const cell = turf.polygon([ring], { id: seed.id, name: seed.name, zone: seed.zone, kind: seed.kind, center: [seed.lat, seed.lng] });
-      const clipped = turf.intersect(turf.featureCollection([cell, LAND_GEOJSON]));
-      if (!clipped) return null;
-      clipped.properties = { ...cell.properties };
-      return clipped;
-    }).filter(Boolean);
   }
 
   function drawLandOutline() {
@@ -303,7 +285,7 @@
     if (cached) return cached;
     const mapByRegion = {};
     REGION_FEATURES.forEach((feature) => {
-      mapByRegion[feature.properties.id] = frame.zones[feature.properties.zone] || null;
+      mapByRegion[feature.properties.zone] = frame.zones[feature.properties.zone] || null;
     });
     frameStateCache.set(frame.year, mapByRegion);
     return mapByRegion;
@@ -312,33 +294,9 @@
   function buildTerritories(frame) {
     if (territoryCache.has(frame.year)) return territoryCache.get(frame.year);
     const stateByRegion = buildStateAssignments(frame);
-    const features = REGION_FEATURES
-      .map((feature) => {
-        const stateId = stateByRegion[feature.properties.id];
-        if (!stateId) return null;
-        const clone = cloneFeature(feature);
-        clone.properties.stateId = stateId;
-        return clone;
-      })
-      .filter(Boolean);
-
-    const flattened = [];
-    features.forEach((feature) => {
-      const parts = turf.flatten(feature).features;
-      parts.forEach((part) => {
-        part.properties = { ...feature.properties };
-        flattened.push(part);
-      });
-    });
-
-    const dissolved = turf.dissolve(turf.featureCollection(flattened), { propertyName: "stateId" }).features.map((feature) => {
-      const labelPoint = turf.pointOnFeature(feature).geometry.coordinates;
-      const area = turf.area(feature);
-      feature.properties = { stateId: feature.properties.stateId, labelPoint, area };
-      return feature;
-    });
-
-    const payload = { territories: dissolved, stateByRegion };
+    const generated = (window.GENERATED_TERRITORIES_BY_YEAR || {})[frame.year];
+    const territories = (generated || []).map((feature) => cloneFeature(feature));
+    const payload = { territories, stateByRegion };
     territoryCache.set(frame.year, payload);
     return payload;
   }
@@ -504,7 +462,7 @@
     L.geoJSON(REGION_FEATURES, {
       className: "county-boundary",
       style: (feature) => {
-        const sid = stateByRegion[feature.properties.id];
+        const sid = stateByRegion[feature.properties.zone];
         return {
           color: safeState(sid).color,
           weight: 0.6,
@@ -513,7 +471,7 @@
         };
       },
       onEachFeature: (feature, layer) => {
-        layer.bindTooltip(`${feature.properties.name} · ${safeState(stateByRegion[feature.properties.id]).name}`);
+        layer.bindTooltip(`${feature.properties.name} · ${safeState(stateByRegion[feature.properties.zone]).name}`);
       }
     }).addTo(countyBoundaryLayer);
 

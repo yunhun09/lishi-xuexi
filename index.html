@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <h1>两晋十六国・南北朝（265—589）政权演变与战役地图</h1>
-    <p class="disclaimer">疆域以东亚陆地轮廓裁剪后的州郡治所 Voronoi 单元合并重建；战役模式含路线、兵力、阶段说明与史料卷次。</p>
+    <p class="disclaimer">疆域改为按手工边界拓扑预生成：外缘受西南/西北/漠南边线约束，重要分界尽量贴合淮河、汉水、长江、秦岭、大巴山等真实地形；战役模式含路线、兵力、阶段说明与史料卷次。</p>
   </header>
 
   <main class="layout">
@@ -92,9 +92,9 @@
   </section>
 
   <script src="vendor/leaflet/leaflet-1.9.4.js"></script>
-  <script src="vendor/d3/d3-delaunay-6.0.4.min.js"></script>
   <script src="vendor/turf/turf-7.2.0.min.js"></script>
   <script src="data/land.geojson.js"></script>
+  <script src="data/territories.generated.js"></script>
   <script src="data/regions.js"></script>
   <script src="data/states.js"></script>
   <script src="data/events.js"></script>
