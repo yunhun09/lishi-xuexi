@@ -27,6 +27,23 @@ button { cursor: pointer; padding: 4px 8px; }
 .layout { display: flex; height: calc(100vh - 220px); min-height: 620px; }
 .map-wrap { flex: 1; position: relative; background: #ddd; }
 #map { width: 100%; height: 100%; }
+.paper-texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 350;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle at 20% 18%, rgba(132, 95, 53, 0.12), transparent 28%),
+    radial-gradient(circle at 72% 36%, rgba(160, 124, 79, 0.12), transparent 26%),
+    radial-gradient(circle at 34% 78%, rgba(120, 86, 49, 0.08), transparent 22%),
+    repeating-linear-gradient(125deg, rgba(83, 62, 37, 0.05) 0 2px, rgba(255, 255, 255, 0) 2px 6px);
+  transition: opacity .25s ease;
+}
+.map-wrap.antique-mode .paper-texture { opacity: 0.7; }
+.map-wrap.antique-mode .leaflet-tile {
+  filter: sepia(0.72) saturate(0.58) contrast(0.92) brightness(1.02);
+}
 .sidebar {
   width: 418px;
   border-left: 2px double #967148;
@@ -69,6 +86,117 @@ button { cursor: pointer; padding: 4px 8px; }
 }
 .flag::before { content: ""; position: absolute; left: -3px; top: -3px; bottom: -3px; width: 2px; background: #5f4225; }
 .flag-char { font-weight: 700; font-size: 11px; text-align: center; line-height: 24px; color: #fff; text-shadow: 0 0 2px #000; width: 20px; }
+.state-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.state-flag-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.state-pole {
+  width: 2px;
+  height: 24px;
+  background: #644323;
+  box-shadow: 0 0 2px rgba(255,255,255,0.9);
+}
+.state-flag-banner {
+  min-width: 18px;
+  height: 22px;
+  padding: 0 5px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  clip-path: polygon(0 0, 100% 0, 85% 48%, 100% 100%, 0 100%, 8% 52%);
+  text-shadow: 0 0 3px rgba(0,0,0,.8);
+  animation: flagwave 2.4s ease-in-out infinite;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.state-name {
+  font-weight: 700;
+  color: #402b17;
+  text-shadow: 0 0 4px rgba(255,255,255,.95), 0 0 8px rgba(255,255,255,.9);
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+  line-height: 1.1;
+}
+.city-label {
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  white-space: nowrap;
+}
+.city-symbol {
+  position: relative;
+  flex: 0 0 auto;
+}
+.city-symbol.capital {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #4f2c12;
+  border-radius: 50%;
+  background: rgba(255,255,255,.88);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.7), 0 0 4px rgba(255,255,255,.85);
+}
+.city-symbol.capital::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1.8px solid #4f2c12;
+  border-radius: 50%;
+}
+.city-symbol.capital::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #b31d14;
+}
+.city-symbol.major {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #4f2c12;
+  border-radius: 50%;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 0 4px rgba(255,255,255,.85);
+}
+.city-symbol.minor {
+  width: 7px;
+  height: 7px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #4f2c12;
+  box-shadow: 0 0 4px rgba(255,255,255,.9);
+}
+.city-name {
+  color: #22170f;
+  font-weight: 700;
+  text-shadow: -1px 0 #fff, 0 1px #fff, 1px 0 #fff, 0 -1px #fff, 0 0 6px rgba(255,255,255,.95);
+}
+.city-name.capital-active {
+  color: #7d4c08;
+  text-shadow: -1px 0 #fff7d9, 0 1px #fff7d9, 1px 0 #fff7d9, 0 -1px #fff7d9, 0 0 7px rgba(255,241,184,.95);
+}
+.city-modern {
+  font-size: 10px;
+  color: #5c4a3b;
+  text-shadow: 0 0 4px rgba(255,255,255,.92);
+}
+.map-attribution-note {
+  font-size: 11px;
+  color: #6f5638;
+  margin-top: 4px;
+}
 .event-tools { display: flex; gap: 6px; margin-bottom: 6px; }
 .event-tools input, .event-tools select { width: 100%; padding: 4px; }
 #events { overflow: auto; max-height: 268px; }
@@ -211,6 +339,10 @@ button { cursor: pointer; padding: 4px 8px; }
 .county-toggle-label {
   background: #fffaf0;
   color: var(--ink);
+}
+@keyframes flagwave {
+  0%, 100% { transform: skewY(0deg) translateY(0); }
+  50% { transform: skewY(-5deg) translateY(-1px); }
 }
 @keyframes pulse { to { box-shadow: 0 0 0 14px rgba(191,49,31,0); } }
 @media (max-width: 1080px) {

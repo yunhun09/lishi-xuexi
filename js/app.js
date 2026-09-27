@@ -1,8 +1,56 @@
 (function () {
+  const mapWrap = document.querySelector(".map-wrap");
   const map = L.map("map", { zoomSnap: 0.25, preferCanvas: true }).setView([34.3, 109.6], 5);
+  map.createPane("territoryGlowPane");
+  map.getPane("territoryGlowPane").style.zIndex = 360;
+  map.createPane("stateLabelPane");
+  map.getPane("stateLabelPane").style.zIndex = 640;
+  map.createPane("cityLabelPane");
+  map.getPane("cityLabelPane").style.zIndex = 660;
+
+  const terrainBase = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 13,
+    attribution: "Shaded relief © Esri — Source: Esri, USGS, NOAA"
+  });
+  const physicalBase = L.layerGroup([
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 13,
+      opacity: 0.86,
+      attribution: "Shaded relief © Esri — Source: Esri, USGS, NOAA"
+    }),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 9,
+      opacity: 0.72,
+      attribution: "Physical map © Esri — Source: US National Park Service"
+    })
+  ]);
+  const antiqueBase = L.layerGroup([
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 13,
+      className: "antique-tiles",
+      attribution: "Terrain © Esri — Source: USGS, Esri"
+    }),
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 9,
+      opacity: 0.35,
+      className: "antique-tiles",
+      attribution: "Physical map © Esri — Source: US National Park Service"
+    })
+  ]);
+  const historicalReferenceLayer = L.layerGroup();
+  if (window.HISTORICAL_REFERENCE_OVERLAY?.url) {
+    L.imageOverlay(window.HISTORICAL_REFERENCE_OVERLAY.url, window.HISTORICAL_REFERENCE_OVERLAY.bounds, {
+      opacity: window.HISTORICAL_REFERENCE_OVERLAY.opacity || 0.38,
+      attribution: window.HISTORICAL_REFERENCE_OVERLAY.attribution || "历史地图参考图层"
+    }).addTo(historicalReferenceLayer);
+  }
+  terrainBase.addTo(map);
 
   const landLayer = L.layerGroup().addTo(map);
+  const territoryGlowLayer = L.layerGroup().addTo(map);
   const frameLayers = L.layerGroup().addTo(map);
+  const stateLabelLayer = L.layerGroup().addTo(map);
+  const citiesLayer = L.layerGroup().addTo(map);
   const countyBoundaryLayer = L.layerGroup();
   const eventLayer = L.layerGroup().addTo(map);
   const battleEntryLayer = L.layerGroup().addTo(map);
@@ -12,7 +60,23 @@
 
   const hydroLayer = L.layerGroup();
   HYDROLOGY.rivers.forEach((river) => {
-    L.polyline(river.coords, { color: river.color, weight: 2.5, opacity: 0.8 }).bindTooltip(river.name).addTo(hydroLayer);
+    L.polyline(river.coords, { color: river.color, weight: river.name === "河" || river.name === "江" ? 3.2 : 2.3, opacity: 0.85 }).bindTooltip(river.fullName || river.name).addTo(hydroLayer);
+    const mid = river.coords[Math.floor(river.coords.length / 2)];
+    L.marker(mid, {
+      icon: L.divIcon({ className: "", html: `<span style="font-size:13px;color:${river.color};font-weight:700;text-shadow:0 0 5px #fff,0 0 10px #fff">${river.name}</span>` })
+    }).addTo(hydroLayer);
+  });
+  (HYDROLOGY.lakes || []).forEach((lake) => {
+    L.polygon(lake.polygon, {
+      color: "#5e97c8",
+      weight: 1,
+      fillColor: "#8cbce4",
+      fillOpacity: 0.38,
+      opacity: 0.88
+    }).bindTooltip(lake.fullName || lake.name).addTo(hydroLayer);
+    L.marker(lake.label, {
+      icon: L.divIcon({ className: "", html: `<span style="font-size:12px;color:#346d9f;font-weight:700;text-shadow:0 0 5px #fff,0 0 10px #fff">${lake.name}</span>` })
+    }).addTo(hydroLayer);
   });
   HYDROLOGY.mountains.forEach((mountain) => {
     L.marker([mountain[1], mountain[2]], {
@@ -43,14 +107,28 @@
     }).bindTooltip(route.name).addTo(migrationLayer);
   });
 
-  L.control.layers(null, {
+  const baseMaps = {
+    "地形晕渲（默认）": terrainBase,
+    "自然地理（水系）": physicalBase,
+    "仿古宣纸风格": antiqueBase
+  };
+  const overlayMaps = {
     "古代水系与山脉": hydroLayer,
     "关隘与长城": passLayer,
     "民族迁徙箭头": migrationLayer,
+    "重要城市": citiesLayer,
     "郡级单元边界（默认关）": countyBoundaryLayer
-  }, { collapsed: false }).addTo(map);
+  };
+  if (window.HISTORICAL_REFERENCE_OVERLAY?.url) {
+    overlayMaps["历史地图参考（自备合法扫描图）"] = historicalReferenceLayer;
+  }
+  L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
   hydroLayer.addTo(map);
   passLayer.addTo(map);
+  citiesLayer.addTo(map);
+  map.on("baselayerchange", (event) => {
+    mapWrap.classList.toggle("antique-mode", event.name === "仿古宣纸风格");
+  });
 
   const slider = document.getElementById("timelineSlider");
   const yearEl = document.getElementById("year");
@@ -121,16 +199,16 @@
     L.geoJSON(LAND_GEOJSON, {
       style: {
         color: "#49443b",
-        weight: 1.15,
-        fillColor: "#efe4c5",
-        fillOpacity: 0.52,
-        opacity: 0.95
+        weight: 1.05,
+        fillColor: "#f6efd9",
+        fillOpacity: 0.08,
+        opacity: 0.72
       }
     }).addTo(landLayer);
   }
 
   function safeState(id) {
-    return STATES[id] || { name: id || "未知", short: "?", color: "#777", years: "", founder: "", ethnicity: "", capitals: [], rulers: "", fall: "", family: "未知", pattern: "solid" };
+    return STATES[id] || { name: id || "未知", short: "?", color: "#777", years: "", founder: "", ethnicity: "", capitals: [], rulers: "", fall: "", family: "未知", pattern: "solid", bannerBasis: "暂无说明。" };
   }
 
   function decorateFlag(state) {
@@ -141,6 +219,43 @@
         ? `radial-gradient(circle at 35% 35%, #f5e9ca 0 14%, transparent 15%), ${state.color}`
         : state.color;
     return { border, bg };
+  }
+
+  function stateDisplayName(state) {
+    return (state.name || "").replace(/（.*?）/g, "").replace(/\(.*?\)/g, "");
+  }
+
+  function cityPriority(city) {
+    return city.level === "capital" ? 0 : city.level === "major" ? 1 : 2;
+  }
+
+  function cityVisibleAtZoom(city, zoom) {
+    if (city.level === "capital") return zoom >= 4.6;
+    if (city.level === "major") return zoom >= 5.2;
+    return zoom >= 6.15;
+  }
+
+  function cityActiveInYear(city, year) {
+    return year >= city.from && year <= city.to;
+  }
+
+  function activeCapitalForCity(city, year) {
+    return (city.capitalFor || []).find((entry) => year >= entry.from && year <= entry.to) || null;
+  }
+
+  function approxLabelBox(latlng, text, zoom, level) {
+    const pt = map.latLngToLayerPoint(latlng);
+    const fontSize = level === "capital" ? Math.max(13, zoom * 2.1) : level === "major" ? Math.max(11, zoom * 1.7) : Math.max(10, zoom * 1.45);
+    return {
+      left: pt.x,
+      right: pt.x + text.length * (fontSize * 0.95) + 30,
+      top: pt.y - 16,
+      bottom: pt.y + 14
+    };
+  }
+
+  function boxesOverlap(a, b) {
+    return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
   }
 
   function buildStateCard(stateId) {
@@ -154,6 +269,7 @@
       <div><b>历代君主：</b>${s.rulers}</div>
       <div><b>灭亡原因：</b>${s.fall}</div>
       <div><b>纹样：</b>${s.pattern}</div>
+      <div><b>旗色依据：</b>${s.bannerBasis}</div>
     `;
   }
 
@@ -210,10 +326,10 @@
     const unrelated = activeBattle && !(activeBattle.polities || []).includes(stateId);
     const dimmedBySelection = selectedState && selectedState !== stateId;
     return {
-      color: dimmedBySelection || unrelated ? "#8c8c8c" : "#2a2a2a",
-      weight: selectedState === stateId ? 1.8 : activeBattle && (activeBattle.polities || []).includes(stateId) ? 1.4 : 1.1,
+      color: dimmedBySelection || unrelated ? "#8c8c8c" : "#3e3328",
+      weight: selectedState === stateId ? 2.6 : activeBattle && (activeBattle.polities || []).includes(stateId) ? 2.2 : 1.85,
       fillColor: state.color,
-      fillOpacity: unrelated ? 0.12 : dimmedBySelection ? 0.16 : selectedState === stateId ? 0.74 : 0.56
+      fillOpacity: unrelated ? 0.08 : dimmedBySelection ? 0.12 : selectedState === stateId ? 0.38 : 0.3
     };
   }
 
@@ -236,10 +352,94 @@
     });
   }
 
+  function renderStateLabels(territories) {
+    stateLabelLayer.clearLayers();
+    if (map.getZoom() < 4.8) return;
+    territories
+      .slice()
+      .sort((a, b) => turf.area(b) - turf.area(a))
+      .forEach((feature) => {
+        const sid = feature.properties.stateId;
+        const state = safeState(sid);
+        const point = turf.pointOnFeature(feature).geometry.coordinates;
+        const area = turf.area(feature);
+        const fontSize = Math.max(15, Math.min(30, 14 + Math.log10(Math.max(area, 1)) * 1.2));
+        const short = state.short || stateDisplayName(state).slice(0, 1);
+        const name = stateDisplayName(state).split("").join(" ");
+        const flagStyle = decorateFlag(state);
+        L.marker([point[1], point[0]], {
+          pane: "stateLabelPane",
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="state-label">
+              <div class="state-flag-wrap">
+                <span class="state-pole"></span>
+                <span class="state-flag-banner" style="background:${flagStyle.bg};border:${flagStyle.border}">${short}</span>
+              </div>
+              <span class="state-name" style="font-size:${fontSize}px">${name}</span>
+            </div>`,
+            iconSize: [fontSize + 28, fontSize * 3.2],
+            iconAnchor: [14, fontSize * 1.6]
+          })
+        }).bindTooltip(`${state.name}｜${state.bannerBasis}`, { direction: "top" }).addTo(stateLabelLayer);
+      });
+  }
+
+  function renderCities(year) {
+    citiesLayer.clearLayers();
+    const zoom = map.getZoom();
+    const acceptedBoxes = [];
+    CITIES
+      .filter((city) => cityActiveInYear(city, year) && cityVisibleAtZoom(city, zoom))
+      .sort((a, b) => cityPriority(a) - cityPriority(b))
+      .forEach((city) => {
+        const activeCapital = activeCapitalForCity(city, year);
+        const labelText = `${city.name}${activeCapital ? "【京】" : ""}`;
+        const bbox = approxLabelBox(L.latLng(city.lat, city.lng), labelText, zoom, city.level);
+        if (acceptedBoxes.some((box) => boxesOverlap(box, bbox))) return;
+        acceptedBoxes.push(bbox);
+        const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.75) : Math.max(10, zoom * 1.45);
+        const symbolClass = city.level === "capital" ? "capital" : city.level === "major" ? "major" : "minor";
+        const capitalStateName = activeCapital ? safeState(activeCapital.state).name : "";
+        L.marker([city.lat, city.lng], {
+          pane: "cityLabelPane",
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="city-label">
+              <span class="city-symbol ${symbolClass}"></span>
+              <span>
+                <span class="city-name ${activeCapital ? "capital-active" : ""}" style="font-size:${fontSize}px">${labelText}</span>
+                ${zoom >= 6.8 ? `<div class="city-modern">${city.modern}${capitalStateName ? `｜${capitalStateName}` : ""}</div>` : ""}
+              </span>
+            </div>`,
+            iconSize: [Math.max(90, fontSize * 6), zoom >= 6.8 ? 34 : 20],
+            iconAnchor: [0, 8]
+          })
+        }).bindTooltip(`${city.name}｜${city.modern}${capitalStateName ? `｜${capitalStateName}都城` : ""}`).addTo(citiesLayer);
+      });
+  }
+
   function drawTerritories(frame) {
+    territoryGlowLayer.clearLayers();
     frameLayers.clearLayers();
+    stateLabelLayer.clearLayers();
     countyBoundaryLayer.clearLayers();
     const { territories, stateByRegion } = buildTerritories(frame);
+
+    L.geoJSON(territories, {
+      pane: "territoryGlowPane",
+      style: (feature) => {
+        const sid = feature.properties.stateId;
+        const activeBattle = activeBattleId ? BATTLES[activeBattleId] : null;
+        const unrelated = activeBattle && !(activeBattle.polities || []).includes(sid);
+        return {
+          color: unrelated ? "#dfd4b6" : "#eadfbe",
+          weight: 6,
+          opacity: unrelated ? 0.08 : 0.5,
+          fillOpacity: 0
+        };
+      }
+    }).addTo(territoryGlowLayer);
 
     L.geoJSON(territories, {
       style: (feature) => styleTerritory(feature.properties.stateId),
@@ -267,6 +467,7 @@
     }).addTo(countyBoundaryLayer);
 
     drawLegend(territories);
+    renderStateLabels(territories);
   }
 
   function eventMatchesFilter(event) {
@@ -685,7 +886,9 @@
     const frame = TIMELINE_FRAMES[currentIndex];
     yearEl.textContent = frame.year;
     eraEl.textContent = frame.era;
+    eraEl.title = FRAME_SOURCES?.[frame.year] || "";
     drawTerritories(frame);
+    renderCities(frame.year);
     renderEvents(frame.year);
     renderBattleEntries(frame.year);
     drawTimelineBands();
@@ -699,6 +902,7 @@
   playBtn.onclick = playToggle;
   speedSelect.onchange = () => { if (timer) playToggle(), playToggle(); };
   slider.oninput = () => renderFrame(Number(slider.value));
+  map.on("zoomend", () => renderFrame(currentIndex, { preserveBattle: true }));
   battleJumpBtn.onclick = () => {
     const current = battleForYear(TIMELINE_FRAMES[currentIndex].year);
     if (current.length) openBattle(current[0].id);
