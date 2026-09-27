@@ -127,7 +127,7 @@
   passLayer.addTo(map);
   citiesLayer.addTo(map);
   map.on("baselayerchange", (event) => {
-    mapWrap.classList.toggle("antique-mode", event.name === "仿古宣纸风格");
+    if (mapWrap) mapWrap.classList.toggle("antique-mode", event.name === "仿古宣纸风格");
   });
 
   const slider = document.getElementById("timelineSlider");
@@ -243,14 +243,18 @@
     return (city.capitalFor || []).find((entry) => year >= entry.from && year <= entry.to) || null;
   }
 
-  function approxLabelBox(latlng, text, zoom, level) {
+  function approxLabelBox(latlng, city, zoom) {
     const pt = map.latLngToLayerPoint(latlng);
-    const fontSize = level === "capital" ? Math.max(13, zoom * 2.1) : level === "major" ? Math.max(11, zoom * 1.7) : Math.max(10, zoom * 1.45);
+    const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.7) : Math.max(10, zoom * 1.45);
+    const labelText = `${city.name}${city.activeCapital ? "【京】" : ""}`;
+    const modernWidth = zoom >= 6.8 ? city.modern.length * 6.6 : 0;
+    const width = Math.max(labelText.length * (fontSize * 0.92), modernWidth) + 26;
+    const height = zoom >= 6.8 ? 32 : 20;
     return {
       left: pt.x,
-      right: pt.x + text.length * (fontSize * 0.95) + 30,
-      top: pt.y - 16,
-      bottom: pt.y + 14
+      right: pt.x + width,
+      top: pt.y - 10,
+      bottom: pt.y + height
     };
   }
 
@@ -311,7 +315,9 @@
     });
 
     const dissolved = turf.dissolve(turf.featureCollection(flattened), { propertyName: "stateId" }).features.map((feature) => {
-      feature.properties = { stateId: feature.properties.stateId };
+      const labelPoint = turf.pointOnFeature(feature).geometry.coordinates;
+      const area = turf.area(feature);
+      feature.properties = { stateId: feature.properties.stateId, labelPoint, area };
       return feature;
     });
 
@@ -357,12 +363,12 @@
     if (map.getZoom() < 4.8) return;
     territories
       .slice()
-      .sort((a, b) => turf.area(b) - turf.area(a))
+      .sort((a, b) => (b.properties.area || 0) - (a.properties.area || 0))
       .forEach((feature) => {
         const sid = feature.properties.stateId;
         const state = safeState(sid);
-        const point = turf.pointOnFeature(feature).geometry.coordinates;
-        const area = turf.area(feature);
+        const point = feature.properties.labelPoint || turf.pointOnFeature(feature).geometry.coordinates;
+        const area = feature.properties.area || turf.area(feature);
         const fontSize = Math.max(15, Math.min(30, 14 + Math.log10(Math.max(area, 1)) * 1.2));
         const short = state.short || stateDisplayName(state).slice(0, 1);
         const name = stateDisplayName(state).split("").join(" ");
@@ -391,11 +397,12 @@
     const acceptedBoxes = [];
     CITIES
       .filter((city) => cityActiveInYear(city, year) && cityVisibleAtZoom(city, zoom))
-      .sort((a, b) => cityPriority(a) - cityPriority(b))
+      .map((city) => ({ ...city, activeCapital: activeCapitalForCity(city, year) }))
+      .sort((a, b) => cityPriority(a) - cityPriority(b) || a.name.localeCompare(b.name, "zh"))
       .forEach((city) => {
-        const activeCapital = activeCapitalForCity(city, year);
+        const activeCapital = city.activeCapital;
         const labelText = `${city.name}${activeCapital ? "【京】" : ""}`;
-        const bbox = approxLabelBox(L.latLng(city.lat, city.lng), labelText, zoom, city.level);
+        const bbox = approxLabelBox(L.latLng(city.lat, city.lng), city, zoom);
         if (acceptedBoxes.some((box) => boxesOverlap(box, bbox))) return;
         acceptedBoxes.push(bbox);
         const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.75) : Math.max(10, zoom * 1.45);
@@ -902,7 +909,7 @@
   playBtn.onclick = playToggle;
   speedSelect.onchange = () => { if (timer) playToggle(), playToggle(); };
   slider.oninput = () => renderFrame(Number(slider.value));
-  map.on("zoomend", () => renderFrame(currentIndex, { preserveBattle: true }));
+  map.on("zoomend", () => renderFrame(Number(slider.value), { preserveBattle: true }));
   battleJumpBtn.onclick = () => {
     const current = battleForYear(TIMELINE_FRAMES[currentIndex].year);
     if (current.length) openBattle(current[0].id);
