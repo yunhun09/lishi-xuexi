@@ -90,7 +90,6 @@ button { cursor: pointer; padding: 4px 8px; }
   display: flex;
   align-items: center;
   gap: 6px;
-  pointer-events: none;
 }
 .state-flag-wrap {
   display: flex;
@@ -127,7 +126,6 @@ button { cursor: pointer; padding: 4px 8px; }
   line-height: 1.1;
 }
 .city-label {
-  pointer-events: none;
   display: flex;
   align-items: flex-start;
   gap: 4px;

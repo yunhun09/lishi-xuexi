@@ -406,14 +406,16 @@
             iconSize: [fontSize + 28, fontSize * 3.2],
             iconAnchor: [14, fontSize * 1.6]
           })
-        }).bindTooltip(tooltipText, { direction: "top" }).addTo(stateLabelLayer);
-        const el = marker.getElement();
-        if (el) {
+        }).bindTooltip(tooltipText, { direction: "top" });
+        marker.on("add", () => {
+          const el = marker.getElement();
+          if (!el) return;
           el.setAttribute("role", "img");
           el.setAttribute("aria-label", `${state.name}，旗色依据：${state.bannerBasis}`);
           el.setAttribute("title", `${state.name}，旗色依据：${state.bannerBasis}`);
           el.setAttribute("tabindex", "0");
-        }
+        });
+        marker.addTo(stateLabelLayer);
       });
   }
 
@@ -454,14 +456,16 @@
             iconSize: [Math.max(90, metrics.width), metrics.height],
             iconAnchor: [0, 8]
           })
-        }).bindTooltip(tooltipText).addTo(citiesLayer);
-        const el = marker.getElement();
-        if (el) {
+        }).bindTooltip(tooltipText);
+        marker.on("add", () => {
+          const el = marker.getElement();
+          if (!el) return;
           el.setAttribute("role", "img");
           el.setAttribute("aria-label", accessibleText);
           el.setAttribute("title", accessibleText);
           el.setAttribute("tabindex", "0");
-        }
+        });
+        marker.addTo(citiesLayer);
       });
   }
 
