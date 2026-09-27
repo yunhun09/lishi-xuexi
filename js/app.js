@@ -47,6 +47,7 @@
   let currentIndex = 0;
   let selectedState = null;
   let timer = null;
+  let battleTimers = [];
 
   const typeStyle = {
     战争: { color: "#bb3121", icon: "⚔" },
@@ -138,7 +139,6 @@
       poly.bindTooltip(`${r.name} · ${safeState(sid).name}`);
       poly.on("click", () => buildStateCard(sid));
       poly.addTo(frameLayers);
-      setTimeout(() => poly.setStyle({ fillOpacity: styleRegion(sid, selectedState === sid).fillOpacity }), 25);
     });
 
     drawLegend(regionStateMap);
@@ -196,21 +196,33 @@
       <button id="battleRoutePlay">播放进军路线</button>
       <button id="battleClose">关闭</button>
     `;
-    document.getElementById("battleClose").onclick = () => { battlePanel.classList.add("hidden"); routeLayer.clearLayers(); };
+    document.getElementById("battleClose").onclick = () => { battlePanel.classList.add("hidden"); stopBattleAnimation(); };
     document.getElementById("battleRoutePlay").onclick = () => animateBattleRoute(b);
   }
 
-  function animateBattleRoute(battle) {
+  function stopBattleAnimation() {
+    battleTimers.forEach((id) => clearInterval(id));
+    battleTimers = [];
     routeLayer.clearLayers();
+  }
+
+  function animateBattleRoute(battle) {
+    stopBattleAnimation();
     const color = "#9b1e14";
     battle.routes.forEach((route, rIndex) => {
+      const animatedLine = L.polyline([route[0]], { color, weight: 3, opacity: 0.88, dashArray: rIndex % 2 ? "7 5" : "" }).addTo(routeLayer);
       let i = 1;
       const id = setInterval(() => {
-        if (i > route.length) return clearInterval(id);
-        const seg = route.slice(0, i);
-        L.polyline(seg, { color, weight: 3, opacity: 0.88, dashArray: rIndex % 2 ? "7 5" : "" }).addTo(routeLayer);
+        const seg = route.slice(0, Math.min(i, route.length));
+        animatedLine.setLatLngs(seg);
+        if (i >= route.length) {
+          clearInterval(id);
+          battleTimers = battleTimers.filter((x) => x !== id);
+          return;
+        }
         i += 1;
       }, 450);
+      battleTimers.push(id);
     });
   }
 
@@ -245,7 +257,13 @@
       });
     });
 
-    const rows = Object.keys(ranges).slice(0, 12);
+    const rows = Object.keys(ranges)
+      .sort((a, b) => (ranges[a].min - ranges[b].min) || safeState(a).name.localeCompare(safeState(b).name, "zh"))
+      .slice(0, 12);
+    if (!rows.length) {
+      svg.innerHTML = `<rect x="0" y="0" width="${w}" height="${h}" fill="#fff8ea"/><text x="10" y="22" font-size="12" fill="#665">暂无时间带数据</text>`;
+      return;
+    }
     const rowH = h / rows.length;
     const x = (year) => ((year - minY) / (maxY - minY)) * (w - 100) + 88;
 
@@ -279,6 +297,8 @@
     const width = svg.clientWidth || 920;
     const height = 500;
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "政权谱系图，展示政权继承、分裂与更替关系");
 
     const nodes = [...new Set(LINEAGE_EDGES.flat())];
     const lvl = {};
@@ -314,6 +334,7 @@
       const st = safeState(n);
       if (!p) return;
       html += `<rect x="${p.x - 40}" y="${p.y - 14}" width="80" height="28" rx="4" fill="${st.color}" opacity="0.82"/>`;
+      html += `<title>${st.name}，存续${st.years || "未知"}</title>`;
       html += `<text x="${p.x}" y="${p.y + 4}" font-size="11" text-anchor="middle" fill="#fff">${st.name}</text>`;
     });
 
@@ -376,9 +397,17 @@
   slider.oninput = () => renderFrame(Number(slider.value));
 
   document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    const tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || (t && t.isContentEditable)) return;
     if (e.key === "ArrowLeft") renderFrame(currentIndex - 1);
     if (e.key === "ArrowRight") renderFrame(currentIndex + 1);
     if (e.key === " ") { e.preventDefault(); playToggle(); }
+    if (e.key === "Escape") {
+      document.querySelectorAll(".overlay:not(.hidden)").forEach((panel) => panel.classList.add("hidden"));
+      battlePanel.classList.add("hidden");
+      stopBattleAnimation();
+    }
   });
 
   document.getElementById("lineageToggle").onclick = () => {
@@ -391,7 +420,10 @@
   };
 
   document.querySelectorAll(".close-overlay").forEach((b) => {
-    b.onclick = () => document.getElementById(b.dataset.close).classList.add("hidden");
+    b.onclick = () => {
+      document.getElementById(b.dataset.close).classList.add("hidden");
+      stopBattleAnimation();
+    };
   });
 
   initEventFilters();

@@ -83,11 +83,13 @@
     [34.6, 112.4], [32.1, 118.8], [34.3, 108.9], [36.2, 114.5], [37.9, 102.6], [30.7, 104.1], [40.1, 113.3], [36.8, 118.3]
   ];
   const labels = ["边疆冲突", "政权更替", "地方叛乱", "军事整编", "都督区调整", "屯田推进", "外交使团", "边镇修筑"];
+  let generatedIndex = 0;
   for (let y = 266; y <= 589; y += 2) {
     if (core.some((e) => e[0] === y && e[2].includes("之战"))) continue;
-    const p = slots[(y / 2) % slots.length];
-    const l = labels[(y / 2) % labels.length];
+    const p = slots[generatedIndex % slots.length];
+    const l = labels[generatedIndex % labels.length];
     generated.push([y, "战争", `${y}年前后：${l}`, p]);
+    generatedIndex += 1;
   }
 
   const events = [...core, ...migration, ...generated]

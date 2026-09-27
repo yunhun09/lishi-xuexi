@@ -52,7 +52,7 @@
         <h3>事件流</h3>
         <div class="event-tools">
           <select id="eventTypeFilter"></select>
-          <input id="eventSearch" placeholder="搜索事件/人物/地点" />
+          <input id="eventSearch" aria-label="搜索事件" placeholder="搜索事件/人物/地点" />
         </div>
         <div id="events"></div>
       </div>
@@ -62,8 +62,8 @@
   </main>
 
   <section class="timeline-wrap">
-    <input type="range" min="0" value="0" id="timelineSlider" />
-    <svg id="timelineBands" aria-label="政权存续色带"></svg>
+    <input type="range" min="0" value="0" id="timelineSlider" aria-label="时间轴年份滑块" />
+    <svg id="timelineBands" role="img" aria-label="政权存续色带"></svg>
   </section>
 
   <section id="lineagePanel" class="overlay hidden">
