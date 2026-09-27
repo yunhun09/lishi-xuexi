@@ -11,8 +11,11 @@
 - `data/regions.js`：190+ 个州郡治所种子点 + 自然界线（秦岭—淮河、长江、太行、南岭、河西走廊等）成对辅助点 + 古水系/山脉/关隘/长城/迁徙路线
 - `data/states.js`：政权数据（含十六国扩展、族属色系、信息卡字段、谱系边）
 - `data/events.js`：事件数据（含类型、坐标、史料字段）
-- `data/timeline.js`：28 个关键帧（265—589），按分区分配政权归属
+- `data/timeline.js`：29 个关键帧（265—589），按分区分配政权归属
 - `data/battles.js`：17 场重点战役的分阶段路线、兵力、态势与结果卡片数据
+- `data/cities.js`：80+ 古都、重镇、一般城节点（含今地、坐标、等级、有效时段、都城年份）
+- `data/frame_sources.js`：关键年份所参照的图幅/史料说明
+- `data/reference_overlay.js`：可选古地图扫描图叠加接口配置
 - `vendor/`：本地化依赖（Leaflet 1.9.4、d3-delaunay 6.0.4、@turf/turf 7.2.0），运行时不依赖 CDN
 - `docs/screenshots/`：关键帧与战役模式核对截图
 
@@ -20,26 +23,35 @@
 
 1. **陆地轮廓**：以 Natural Earth 海岸线数据裁出东亚范围，山东半岛、辽东半岛、雷州半岛、海南、台湾均可辨识；台湾不属于任何政权，不着色。
 2. **基本单元**：以 190+ 个郡国治所为种子点（坐标参照谭其骧《中国历史地图集》第三、四册及 CHGIS 治所点），用 `d3-delaunay` 生成 Voronoi 图，再用 `turf.intersect` 以陆地轮廓裁剪，得到彼此无缝、无重叠、外缘为真实海岸线的郡级单元。
-3. **自然界线约束**：在秦岭—淮河、长江中下游、太行山、黄河河套、阴山、河西走廊南北两山、大别山、南岭等界线两侧成对布设辅助种子点，使政权边界贴合地形。
+3. **自然界线约束**：在秦岭—淮河、长江中下游、太行山、黄河古道、阴山、河西走廊南北两山、大别山、南岭等界线两侧成对布设辅助种子点，使政权边界尽量贴合地形。
 4. **政权合并**：每一帧先把单元分给各政权，再用 `turf.union` 将同一政权的单元合成整体面渲染，图上只显示政权之间的边界；郡级单元边界放在可选的淡色细虚线图层中，默认关闭。
 5. **性能**：合并结果按帧缓存，全部在浏览器内计算，无构建步骤。
 
 ## 使用方法
 
-1. 直接打开 `index.html`（Leaflet、d3-delaunay、turf 均已本地化，仅底图瓦片需联网；离线时疆域仍可正常渲染）。
+1. 直接打开 `index.html`（Leaflet、d3-delaunay、turf 均已本地化；Esri 地形/自然地理瓦片需联网，离线时疆域与数据层仍可正常渲染）。
 2. 或启用 GitHub Pages：
    - 仓库 `Settings` → `Pages`
    - Source 选择 `Deploy from a branch`
    - Branch 选择 `main` / `root`
    - 保存后等待站点发布
 
+3. 如需叠加自有合法获取的历史地图扫描图：
+   - 打开 `data/reference_overlay.js`
+   - 把 `url` 改为你的图片路径（建议放在 `docs/` 或 `assets/` 下）
+   - 把 `bounds` 调整为图片覆盖的经纬范围
+   - 刷新页面后，可在图层控制里勾选“历史地图参考（自备合法扫描图）”
+
 ## 功能说明
 
-- 地图：地形底图 + Voronoi 重建、按政权合并的连续疆域
-- 图层开关：古代水系/山脉、关隘与长城、人口南迁路线、郡级单元边界（默认关）
+- 地图：默认 Esri `World_Shaded_Relief` 真实晕渲地形底图，可切换自然地理底图与仿古宣纸风格；疆域以半透明着色叠加，保留山脉、盆地、河谷纹理
+- 图层开关：古代水系/山脉、关隘与长城、人口南迁路线、重要城市、郡级单元边界（默认关）
+- 水系：绘出古黄河、长江、淮河、汉水、渭水、济水、泗水、汴渠，并标注震泽、彭蠡、云梦泽、巨野泽
 - 时间轴：滑块、播放/暂停、速度、逐帧、键盘左右键
 - 事件流：类型筛选 + 搜索，地图脉冲点同步
-- 政权卡：点击政权或图例查看建立者、族属、都城、存续、君主、灭亡原因
+- 城市层：80+ 城市/据点按年份和缩放分级显示；都城为双圈红心，重镇为单圈，一般城为小点；当年都城附“【京】”并以金色高亮
+- 政权卡：点击政权或图例查看建立者、族属、都城、存续、君主、灭亡原因，以及牙旗配色依据
+- 国名与牙旗：疆域内部按面积放置国名和 SVG 牙旗标签，小国亦可在缩放后辨识
 - 战役模式：右侧面板与时间轴上的 ⚔ 入口（当年有战役时高亮），点开后自动缩放到战区、其余政权淡化；带箭头的红/蓝进军路线（撤退为虚线）沿河谷驿道绘制，营垒/城池/渡口与交战点脉冲图标；下方阶段时间条支持上一步/下一步/自动播放，每步更新路线、部队旗号与兵力、态势和文字说明（含史料卷次）；最后一步显示胜负、伤亡（史载并注明争议）、疆域变化与历史影响的结果卡片
 - 政权谱系图：展示继承、分裂、灭亡关系
 - 疆域占比图：按州郡单元数统计的示意占比趋势
@@ -56,13 +68,13 @@
 | 350 | 后赵崩解、冉魏 | ![350](docs/screenshots/frame-350-main.png) |
 | 370 | 前秦灭前燕 | ![370](docs/screenshots/frame-370-main.png) |
 | 376 | 前秦统一北方 | ![376](docs/screenshots/frame-376-main.png) |
-| 383 | 淝水之战前后 | ![383](docs/screenshots/frame-383-main.png) |
+| 383 | 淝水之战前后 | ![383](docs/screenshots/frame-383-terrain.png) |
 | 395 | 参合陂后北方再裂 | ![395](docs/screenshots/frame-395-main.png) |
 | 400 | 河西诸凉并立 | ![400](docs/screenshots/frame-400-main.png) |
 | 407 | 胡夏立国 | ![407](docs/screenshots/frame-407-main.png) |
 | 417 | 刘裕灭后秦 | ![417](docs/screenshots/frame-417-main.png) |
 | 420 | 刘宋代晋 | ![420](docs/screenshots/frame-420-main.png) |
-| 439 | 北魏统一北方（西至敦煌、北至阴山） | ![439](docs/screenshots/frame-439-main.png) |
+| 439 | 北魏统一北方（西至敦煌、北至阴山） | ![439](docs/screenshots/frame-439-terrain.png) |
 | 450 | 元嘉北伐前后 | ![450](docs/screenshots/frame-450-main.png) |
 | 469 | 刘宋失淮北 | ![469](docs/screenshots/frame-469-main.png) |
 | 494 | 北魏迁都洛阳 | ![494](docs/screenshots/frame-494-main.png) |
@@ -71,10 +83,11 @@
 | 547 | 侯景之乱前夜 | ![547](docs/screenshots/frame-547-main.png) |
 | 552 | 侯景乱后、突厥兴起 | ![552](docs/screenshots/frame-552-main.png) |
 | 557 | 陈立国、北周代西魏（西梁在江陵） | ![557](docs/screenshots/frame-557-main.png) |
+| 560 | 北齐、北周、陈三分 | ![560](docs/screenshots/frame-560-terrain.png) |
 | 562 | 周齐陈三分（陈以长江为界） | ![562](docs/screenshots/frame-562-main.png) |
 | 577 | 北周灭北齐 | ![577](docs/screenshots/frame-577-main.png) |
 | 581 | 隋代周 | ![581](docs/screenshots/frame-581-main.png) |
-| 589 | 隋灭陈、天下一统 | ![589](docs/screenshots/frame-589-main.png) |
+| 589 | 隋灭陈、天下一统 | ![589](docs/screenshots/frame-589-terrain.png) |
 
 战役模式示例：
 
@@ -82,6 +95,7 @@
 | --- | --- |
 | 淝水之战（阶段 2） | ![淝水](docs/screenshots/battle-feishui-phase2.png) |
 | 隋灭陈（阶段 3） | ![隋灭陈](docs/screenshots/battle-sui-mie-chen-phase3.png) |
+| 关中—汉中地形贴线特写 | ![关中汉中特写](docs/screenshots/zoom-guanzhong-hanzhong.png) |
 
 ## 数据来源与精度声明
 
@@ -89,6 +103,10 @@
   - 谭其骧《中国历史地图集》第三、四册
   - CHGIS（China Historical GIS）相关公开研究成果
   - 《晋书》《资治通鉴》《宋书》《魏书》《周书》《北齐书》《南史》《北史》等
+- 底图与版权：
+  - Terrain / Shaded Relief / Physical 底图来自 Esri 在线地图服务，页面内保留 Leaflet attribution 标注
+  - 陆地轮廓来自 Natural Earth 海岸线简化裁剪结果
+  - 可选历史参考图层默认不附带任何扫描图，须由用户自行放入合法取得的图片
 - **精度声明**：边界为示意重建，约州郡级，不等同于考古测绘成果。
 - 战役兵力等争议数字在卡片中标注“史载”并提示存在争议。
 
