@@ -243,11 +243,20 @@
     return (city.capitalFor || []).find((entry) => year >= entry.from && year <= entry.to) || null;
   }
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function approxLabelBox(latlng, city, zoom) {
     const pt = map.latLngToLayerPoint(latlng);
     const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.7) : Math.max(10, zoom * 1.45);
     const labelText = `${city.name}${city.activeCapital ? "【京】" : ""}`;
-    const modernWidth = zoom >= 6.8 ? city.modern.length * 6.6 : 0;
+    const modernWidth = zoom >= 6.8 ? String(city.modern || "").length * 6.6 : 0;
     const width = Math.max(labelText.length * (fontSize * 0.92), modernWidth) + 26;
     const height = zoom >= 6.8 ? 32 : 20;
     return {
@@ -370,8 +379,9 @@
         const point = feature.properties.labelPoint || turf.pointOnFeature(feature).geometry.coordinates;
         const area = feature.properties.area || turf.area(feature);
         const fontSize = Math.max(15, Math.min(30, 14 + Math.log10(Math.max(area, 1)) * 1.2));
-        const short = state.short || stateDisplayName(state).slice(0, 1);
-        const name = stateDisplayName(state).split("").join(" ");
+        const short = escapeHtml(state.short || stateDisplayName(state).slice(0, 1));
+        const name = escapeHtml(stateDisplayName(state).split("").join(" "));
+        const tooltipText = `${escapeHtml(state.name)}｜${escapeHtml(state.bannerBasis)}`;
         const flagStyle = decorateFlag(state);
         L.marker([point[1], point[0]], {
           pane: "stateLabelPane",
@@ -387,7 +397,7 @@
             iconSize: [fontSize + 28, fontSize * 3.2],
             iconAnchor: [14, fontSize * 1.6]
           })
-        }).bindTooltip(`${state.name}｜${state.bannerBasis}`, { direction: "top" }).addTo(stateLabelLayer);
+        }).bindTooltip(tooltipText, { direction: "top" }).addTo(stateLabelLayer);
       });
   }
 
@@ -408,6 +418,10 @@
         const fontSize = city.level === "capital" ? Math.max(13, zoom * 2.1) : city.level === "major" ? Math.max(11, zoom * 1.75) : Math.max(10, zoom * 1.45);
         const symbolClass = city.level === "capital" ? "capital" : city.level === "major" ? "major" : "minor";
         const capitalStateName = activeCapital ? safeState(activeCapital.state).name : "";
+        const escapedLabel = escapeHtml(labelText);
+        const escapedModern = escapeHtml(city.modern || "");
+        const escapedCapitalStateName = escapeHtml(capitalStateName);
+        const tooltipText = `${escapeHtml(city.name)}｜${escapedModern}${capitalStateName ? `｜${escapedCapitalStateName}都城` : ""}`;
         L.marker([city.lat, city.lng], {
           pane: "cityLabelPane",
           icon: L.divIcon({
@@ -415,14 +429,14 @@
             html: `<div class="city-label">
               <span class="city-symbol ${symbolClass}"></span>
               <span>
-                <span class="city-name ${activeCapital ? "capital-active" : ""}" style="font-size:${fontSize}px">${labelText}</span>
-                ${zoom >= 6.8 ? `<div class="city-modern">${city.modern}${capitalStateName ? `｜${capitalStateName}` : ""}</div>` : ""}
+                <span class="city-name ${activeCapital ? "capital-active" : ""}" style="font-size:${fontSize}px">${escapedLabel}</span>
+                ${zoom >= 6.8 ? `<div class="city-modern">${escapedModern}${capitalStateName ? `｜${escapedCapitalStateName}` : ""}</div>` : ""}
               </span>
             </div>`,
             iconSize: [Math.max(90, fontSize * 6), zoom >= 6.8 ? 34 : 20],
             iconAnchor: [0, 8]
           })
-        }).bindTooltip(`${city.name}｜${city.modern}${capitalStateName ? `｜${capitalStateName}都城` : ""}`).addTo(citiesLayer);
+        }).bindTooltip(tooltipText).addTo(citiesLayer);
       });
   }
 
